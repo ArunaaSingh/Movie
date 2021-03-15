@@ -1,0 +1,140 @@
+---
+title: "MOVIES"
+author: "Aruna Singh"
+date: "3/15/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r fetched movie dataset}
+library(tidyverse)
+library(ggplot2) # visualization
+library(ggrepel)
+library(ggthemes) # visualization
+library(scales) # visualization
+library(dplyr) # data manipulation
+library(data.table)
+library(formattable)
+library(plotly)
+library(GGally)
+library(caret)
+library(corrplot)
+library(dplyr)
+library(assertive)
+library(lubridate)
+library(gridExtra)
+
+load("/Users/arunasingh/Downloads/Projects/UC/Data Science/DAM/moviedataset.RData")
+write.csv(movies,file="/Users/arunasingh/Downloads/Projects/UC/Data Science/DAM/moviedataset.csv")
+movie <- read.csv("/Users/arunasingh/Downloads/Projects/UC/Data Science/DAM/moviedataset.csv")
+summary(movie)
+
+```
+
+## Number of movies based on critics rating
+
+```{r point 1}
+
+df <- movie %>%
+ count(critics_rating) %>%
+  arrange(desc(n))
+
+ggplot(df, aes(x=(n*100/sum(n)) , y= critics_rating, fill = critics_rating)) +
+  geom_bar(stat="identity")
+
+```
+
+## Top movies at every year based on imdb_rating
+
+```{r point 2}
+
+moviepoint <- distinct_all(movie %>%
+  select(title, imdb_rating, thtr_rel_year) %>%
+  filter(thtr_rel_year>= 1970 & thtr_rel_year<= 2000) %>%
+  slice_max(imdb_rating, n = 10) %>%
+    arrange(thtr_rel_year)) 
+
+moviepoint
+
+moviepoint %>%
+  ggplot(mapping= aes(x = thtr_rel_year, y = title, fill = imdb_rating)) +
+  geom_bar(stat="identity") + xlab("Year of the movie release") +
+  ylab("Movie Name") + coord_cartesian(xlim = c(1970, 2005))
+
+```
+
+## Best of rotten 
+
+```{r point 3}
+
+movierotten <- distinct_all(movie %>%
+filter(critics_rating == 'Rotten') %>%
+  select(title, imdb_rating, thtr_rel_year) %>%
+    arrange(desc(imdb_rating))) 
+
+movierotten
+
+## Total Number of Rotten Movies are 307
+
+movierotten_10 <- movierotten%>%
+  slice_max(imdb_rating, n = 10)
+
+movierotten_10 %>%
+  ggplot(mapping= aes(x = imdb_rating, y = title, fill = imdb_rating)) +
+  geom_bar(stat="identity") + xlab("IMDB Rating") +
+  ylab("Movie Name") + coord_cartesian(xlim = c(7, 8)) +
+  scale_fill_continuous(type = "viridis") 
+
+
+```
+
+## Top 200 movies by critics rating then find no of movies with critic score 100 
+and plot movie wrt audience score for CR 100 
+
+```{r point 4}
+criticmov <- distinct_all(movie %>%
+               select(title, critics_score, audience_score) %>%
+               slice_max(critics_score, n = 200) %>%
+               arrange(desc(critics_score)))
+
+criticmov
+
+criticmov_100 <- criticmov %>%
+                filter(critics_score == 100) 
+
+criticmov_100
+
+## Total 19 movies are there with critic score as 100
+
+criticmov_100 %>%
+  ggplot(mapping= aes(x = title , y = audience_score, fill = factor(audience_score))) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+   geom_bar(stat="identity") + xlab("Movie Name") + ylab("Audience Score") 
+
+
+```
+## Movies with high critics rating but low audience score lies in which MPAA Rating 
+
+```{r point 5}
+critic_aud_mov <- distinct_all(movie %>%
+               select(title, critics_score, audience_score, imdb_rating, mpaa_rating) %>%
+               slice_max(critics_score, n = 200) %>%
+               arrange(audience_score))
+
+critic_aud_mov
+
+criticmov_100 <- critic_aud_mov %>%
+                filter(critics_score == 100) %>%
+               slice_min(audience_score, n = 10) 
+
+criticmov_100
+
+## Total 19 movies are there with critic score as 100
+
+criticmov_100 %>%
+  ggplot(mapping= aes(x = audience_score, y = title, color= factor(mpaa_rating), shape = factor(mpaa_rating),
+                      size = 100)) +
+   geom_point(stat = "identity") + xlab("Audience Score") +
+  ylab("Movie Name") 
+```
